@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "CHIMERA Mobile",
+  "short_name": "CHIMERA",
+  "description": "A physically modelled voice synthesizer, tuned for touch screens.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["music", "entertainment", "utilities"],
+  "icons": [
+    {
+      "src": "./chimera-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
