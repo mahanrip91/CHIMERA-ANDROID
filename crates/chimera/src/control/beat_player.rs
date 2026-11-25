@@ -34,8 +34,6 @@ pub struct BeatPlayer {
     mark_pos: usize,
     /// one step's gestures, reused
     buf: Vec<Gesture>,
-    /// following a host's transport: where its last block ended (beats)
-    follow_end: Option<f64>,
 }
 
 impl Default for BeatPlayer {
@@ -54,11 +52,6 @@ impl BeatPlayer {
     /// tempo range: a sixteenth at 240 bpm is 62 ms, about as fast as a beatboxer goes
     pub const MIN_BPM: f64 = 40.0;
     pub const MAX_BPM: f64 = 240.0;
-    /// [`Self::follow`]: a position this many steps (or two blocks, if more) from where the last
-    /// block ended is a jump; anything less is a host's unevenness
-    const JUMP_STEPS: f64 = 0.25;
-    /// [`Self::follow`]: positions this close (beats) are the same point, whatever rounding says
-    const SAME_BEAT: f64 = 1e-9;
 
     pub fn new() -> Self {
         BeatPlayer {
@@ -74,7 +67,6 @@ impl BeatPlayer {
             mark_t: [0.0; MARKS],
             mark_pos: 0,
             buf: Vec::with_capacity(MAX_SOUND_GESTURES),
-            follow_end: None,
         }
     }
 
@@ -154,7 +146,7 @@ impl BeatPlayer {
 
     /// Step under the playhead at `clock`: the last scheduled step whose hit has come (−1: none).
     pub fn step_at(&self, clock: f64) -> i64 {
-        if (!self.playing && self.follow_end.is_none()) || self.steps.is_empty() {
+        if !self.playing || self.steps.is_empty() {
             return -1;
         }
         let (mut best, mut best_t) = (-1i64, f64::NEG_INFINITY);
@@ -209,65 +201,6 @@ impl BeatPlayer {
         true
     }
 
-    /// Where step `n` falls on a host's timeline (beats), with swing on the odd steps.
-    fn step_beat(&self, n: i64) -> f64 {
-        let base = n as f64 / Self::STEPS_PER_BEAT;
-        if n % 2 == 1 { base + self.swing * 0.5 / Self::STEPS_PER_BEAT } else { base }
-    }
-
-    /// Follow a host's transport instead of the voice clock: schedule the steps the position reaches
-    /// in this block, which runs from `beats` to `beats_end` and starts at `clock`. Each hit lands
-    /// `delay` seconds after its point on the timeline, which leaves its set-up room (the plugin
-    /// reports that delay as latency). No allocation.
-    ///
-    /// A step's number only moves forward, so a host that repeats a position or reports an uneven
-    /// one can't double a hit; only a real jump looks it up again. Steps wait for beat 0 during a
-    /// pre-roll. See docs/plugin.md, "Beatbox".
-    pub fn follow(&mut self, clock: f64, beats: f64, beats_end: f64, bpm: f64, delay: f64, schedule: &mut impl FnMut(&[Gesture])) {
-        self.bpm = bpm;
-        let jumped = match self.follow_end {
-            None => true,
-            Some(end) => (beats - end).abs() > js_max(2.0 * (beats_end - beats), Self::JUMP_STEPS / Self::STEPS_PER_BEAT),
-        };
-        if jumped {
-            let mut n = js_max(0.0, (beats * Self::STEPS_PER_BEAT).floor() - 1.0) as i64;
-            while self.step_beat(n) < beats - Self::SAME_BEAT {
-                n += 1;
-            }
-            self.next = n;
-        }
-        self.follow_end = Some(beats_end);
-        if self.steps.is_empty() {
-            return;
-        }
-        let seconds_per_beat = 60.0 / bpm;
-        let mut buf = std::mem::take(&mut self.buf);
-        for _guard in 0..64 {
-            let at = self.step_beat(self.next);
-            // rounding mustn't fire a step at the very end of a block: if the next block is a loop's
-            // start, that same point would fire again
-            if at >= beats_end - Self::SAME_BEAT {
-                break;
-            }
-            let hit = clock + (at - beats) * seconds_per_beat + delay;
-            self.mark(self.next, hit);
-            if self.step_gestures(self.next, hit, &mut buf) {
-                schedule(&buf);
-            }
-            self.next += 1;
-        }
-        self.buf = buf;
-    }
-
-    pub fn following(&self) -> bool {
-        self.follow_end.is_some()
-    }
-
-    /// Stop following. The next [`Self::follow`] looks its step up afresh.
-    pub fn stop_following(&mut self) {
-        self.follow_end = None;
-        self.mark_n = [-1; MARKS];
-    }
 
     /// The steps scheduled lately: number and hit time, in no particular order.
     pub fn recent_hits(&self) -> impl Iterator<Item = (i64, f64)> + '_ {

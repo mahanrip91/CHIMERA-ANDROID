@@ -1,30 +1,21 @@
-# CHIMERA Mobile
+# Android build and release
 
-An Android-first, installable web edition of CHIMERA. The original Rust/WebAssembly voice engine and React instrument are retained; this project adds a touch-oriented mobile shell, PWA installation, offline asset caching, and GitHub Pages deployment.
+CHIMERA is shipped as an Android-installable Progressive Web App (PWA) through GitHub Pages. It uses Chrome's WebAssembly, AudioWorklet and Web Audio implementations.
 
-## Local development
-
-Requirements: Bun, Rust, and the `wasm32-unknown-unknown` Rust target.
+## Production build
 
 ```sh
 bun install
-bun run dev
+rustup target add wasm32-unknown-unknown
+bun run build
 ```
 
-## GitHub Pages
+Vite writes the deployable site to `dist/`. GitHub Actions runs the same build on its hosted runner and publishes it to `https://mahanrip91.github.io/CHIMERA-ANDROID/`.
 
-The included workflow builds the WebAssembly engine and deploys `dist/` to GitHub Pages whenever `main` is updated. The Vite base path is configured for the repository name `CHIMERA-Android`.
+## Install on a phone
 
-In the repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.
+Open the HTTPS site in Android Chrome, use the browser menu's **Install app** / **Add to Home screen** action, then launch the installed shortcut. Audio starts only after the user taps an in-app playback control.
 
-## Mobile features
+## Offline behavior
 
-- Responsive controls and screen layout for narrow touch displays.
-- Installable PWA manifest and Android app icon.
-- Service worker caching for repeat visits and offline app-shell access.
-
-The synthesizer needs a browser with Web Audio, AudioWorklet, WebAssembly, and a secure context (HTTPS or localhost). Offline access is available after the app and its assets have been cached once.
-
-## Upstream
-
-Based on [jamesondh/chimera-vocal-synth](https://github.com/jamesondh/chimera-vocal-synth), licensed under MIT. See [LICENSE](LICENSE) and the upstream project for its credits and notices.
+The service worker caches the app shell and same-origin resources after they are successfully fetched. The first install and first engine/data load require internet access. A resource that has never been downloaded cannot be available offline.

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { inPlugin } from "../../audio/pluginBridge.ts";
 import { useStore } from "../store.ts";
 import { useSing, playTune, stopSinging, soundingSyllable, sungNow, TUNES, ensureDictionary } from "../singing.ts";
 import { engine } from "../../audio/AudioEngine.ts";
@@ -122,18 +121,13 @@ function SongControls() {
             { label: "Ring", value: epilarynx, min: 0, max: 1, onChange: (v) => setArtic({ epilarynx: v }), format: (v) => ({ value: String(Math.round(v * 100)), unit: "%" }) },
           ],
         },
-        // the tune's speed and key, from the next time Sing is pressed (the plugin has no tunes: the host plays)
-        ...(inPlugin
-          ? []
-          : [
-              {
-                name: "Tune",
-                encoders: [
-                  { label: "Tempo", value: tempo, min: 0.5, max: 1.5, step: 0.05, onChange: (v: number) => setTempo(Math.round(v * 20) / 20), format: (v: number) => ({ value: String(Math.round(v * 100)), unit: "%" }) },
-                  { label: "Key", value: key, min: -12, max: 12, step: 1, onChange: (v: number) => setKey(Math.round(v)), format: (v: number) => ({ value: (v > 0.5 ? "+" : "") + String(Math.round(v)), unit: "semitones" }) },
-                ],
-              },
-            ]),
+        {
+          name: "Tune",
+          encoders: [
+            { label: "Tempo", value: tempo, min: 0.5, max: 1.5, step: 0.05, onChange: (v: number) => setTempo(Math.round(v * 20) / 20), format: (v: number) => ({ value: String(Math.round(v * 100)), unit: "%" }) },
+            { label: "Key", value: key, min: -12, max: 12, step: 1, onChange: (v: number) => setKey(Math.round(v)), format: (v: number) => ({ value: (v > 0.5 ? "+" : "") + String(Math.round(v)), unit: "semitones" }) },
+          ],
+        },
         {
           name: "Tone",
           encoders: [{ label: "Bright", value: source.brightness, min: 0, max: 1, onChange: (v) => setSource({ brightness: v }), format: (v) => ({ value: String(Math.round(v * 100)), unit: "%" }) }],
@@ -270,12 +264,11 @@ export function SingRight() {
   const next = useSing((s) => (s.playing ? null : (s.syllables[s.cursor]?.text ?? null)));
   return (
     <div className="right right-sing">
-      {/* the plugin sings what the host plays: no tunes to sing or record */}
-      {!inPlugin && <SingActions />}
+      <SingActions />
       <Screen watch className="s-roll" title="Pitch">
         <PianoRoll />
       </Screen>
-      <Screen className="s-lyrics" title="Lyrics" tools={inPlugin ? undefined : <LyricsLang />}>
+      <Screen className="s-lyrics" title="Lyrics" tools={<LyricsLang />}>
         <Lyrics />
       </Screen>
       <Screen watch className="s-spec" title="Spectrum" sub={ring ? "Ring on" : ""}>

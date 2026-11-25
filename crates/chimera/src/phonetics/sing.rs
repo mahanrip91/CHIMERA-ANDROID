@@ -13,8 +13,8 @@
 //! sings the glide and the coda.
 //!
 //! [`plan_song`] allocates and runs off the audio thread. The live planners come in two forms:
-//! `*_into` over a [`LiveSyllable`] allocates nothing once its `Vec` has capacity (the plugin's
-//! audio thread); the plain ones over a [`Syllable`] return a `Vec` (the browser's JSON API).
+//! `*_into` over a [`LiveSyllable`] allocates nothing once its `Vec` has capacity (the audio worklet's
+//! real-time thread); the plain ones over a [`Syllable`] return a `Vec` (the browser's JSON API).
 
 use super::inventory::phoneme;
 use crate::anatomy::human::{ArticKey, BodyMix};

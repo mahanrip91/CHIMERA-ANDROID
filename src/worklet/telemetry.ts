@@ -1,7 +1,7 @@
 /**
  * The human voice's flat telemetry block (`VoiceTelemetry::write_flat` in
  * crates/chimera/src/voice/human_voice.rs), as the UI reads it. Shared by the AudioWorklet and the
- * plugin bridge, so it must not use anything the AudioWorkletGlobalScope lacks.
+ * audio worklet boundary, so it must not use anything the AudioWorkletGlobalScope lacks.
  */
 import { fromUtf8 } from "../wasm/wire.ts";
 import type { VoiceTelemetry } from "../wasm/types.ts";

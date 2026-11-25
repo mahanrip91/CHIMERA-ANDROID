@@ -1,21 +1,36 @@
 {
   "id": "./",
-  "name": "CHIMERA Mobile",
+  "name": "CHIMERA for Android",
   "short_name": "CHIMERA",
-  "description": "A physically modelled voice synthesizer, tuned for touch screens.",
+  "description": "Android-first physical voice synthesizer",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
-  "categories": ["music", "entertainment", "utilities"],
+  "categories": [
+    "music",
+    "entertainment"
+  ],
   "icons": [
+    {
+      "src": "./chimera-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./chimera-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "./chimera-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

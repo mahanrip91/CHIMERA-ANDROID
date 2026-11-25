@@ -297,20 +297,6 @@ impl Engine {
         &self.beat
     }
 
-    /// Run the sequencer from a host's transport for this block: see [`BeatPlayer::follow`].
-    pub fn beat_follow(&mut self, beats: f64, beats_end: f64, bpm: f64, delay: f64) {
-        let voice = &mut self.voice;
-        let clock = voice.clock;
-        self.beat.follow(clock, beats, beats_end, bpm, delay, &mut |gs| voice.schedule(gs));
-    }
-
-    /// Stop following the host. Hits already scheduled would still sound, so they go too.
-    pub fn beat_stop_following(&mut self) {
-        if self.beat.following() {
-            self.beat.stop_following();
-            self.voice.cancel_score();
-        }
-    }
 
     /// Set-up time this sound needs before its hit (s). No allocation.
     pub fn beat_lead(&mut self, id: &str) -> f64 {

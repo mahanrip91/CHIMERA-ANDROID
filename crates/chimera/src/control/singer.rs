@@ -3,7 +3,7 @@
 //! lyrics holds the vowel onto a new pitch (melisma); releasing the sounding key while another is
 //! down glides back to it; velocity sets the breath; the release sings the coda.
 //!
-//! Real time: once built, nothing here allocates or frees, so a plugin can call it from its audio
+//! Real time: once built, nothing here allocates or frees, so the Web Audio worklet can call it from its real-time audio
 //! thread. Only [`syllables_from`] and building a [`Singer`] allocate; do those elsewhere and hand
 //! the result to [`Singer::set_syllables`]. The browser has its own copy of this logic in
 //! `src/ui/singing.ts`, which also keeps the piano roll.

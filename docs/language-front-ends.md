@@ -227,7 +227,7 @@ a dip in the middle or a 214 measured no better), the sibilants (c heard as ch) 
 These numbers were measured before the changes in "By a native speaker's ear" below, with the
 tones drawn as held bends and the endings held. As it ships, with no tones drawn and the rhymes
 closing in one movement: **37.8% / 39.7%** scrambled (male / female) and 12.5% / 15.0% on the
-real poems (8 scrambles × 2 voices, on Windows). On the same machine #85's head reads 25.0% /
+real poems (8 scrambles × 2 voices, in the test run). On the same machine #85's head reads 25.0% /
 27.8% and 7.5% / 15.0%, and Korean and English read the same on both builds to the digit
 (52.8 / 53.4% and 68.0 / 73.5% scrambled; their 36 renders are byte-identical), within 2.2
 points of the table below. So the recogniser scores this 12 points worse than the version the
@@ -280,7 +280,7 @@ known to be wrong, with where it was measured:
 - **Aspirated affricates** (q ch c) have a silent gap between the frication and the vowel.
 - **Rhythm is the notes'.** Nothing speaks Mandarin: Speak doesn't read it, and its timing and
   intonation come with #48.
-- **Live notes** (a key pressed, the plugin) don't sing the closing rhyme.
+- **Live notes** (a key pressed in Play) don't sing the closing rhyme.
 
 ## The one format
 
@@ -420,7 +420,7 @@ three of four comparisons.
   Japanese from Mandarin, so Latin text is English unless it is toned pinyin or Turkish is chosen,
   and Han characters are Mandarin (which leaves a Japanese kanji nowhere to go but Mandarin's
   reading). Each new Latin-script language joins `Lang`, the one language setting (#40).
-- **Bends on live notes:** a key pressed in Sing or a note from the plugin (`plan_note_on`) sings
+- **Bends on live notes:** a key pressed in Sing  sings
   the note's pitch.
 - **Tones in speech:** Speak doesn't read Mandarin yet; the tones' contours and speech tuning come
   next, from #48, onto this front end.

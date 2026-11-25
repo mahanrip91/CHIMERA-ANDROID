@@ -4,7 +4,6 @@
  * channels sounds until the last of them lets go. All-notes-off and unplugging release what
  * that input (channel) was holding.
  */
-import { inPlugin } from "../audio/pluginBridge.ts";
 
 export type MidiStatus = "off" | "connecting" | "on" | "unsupported" | "denied";
 
@@ -15,8 +14,8 @@ export interface MidiHandlers {
   inputs: (names: string[]) => void;
 }
 
-/** The plugin gets its MIDI from the host. */
-export const midiSupported = (): boolean => !inPlugin && typeof navigator !== "undefined" && typeof navigator.requestMIDIAccess === "function";
+/** Web MIDI is optional and depends on the Android browser and connected hardware. */
+export const midiSupported = (): boolean => typeof navigator !== "undefined" && typeof navigator.requestMIDIAccess === "function";
 
 let handlers: MidiHandlers | null = null;
 let access: MIDIAccess | null = null;

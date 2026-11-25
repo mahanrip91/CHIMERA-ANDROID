@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useStore } from "./store.ts";
 import { engine } from "../audio/AudioEngine.ts";
-import { inPlugin } from "../audio/pluginBridge.ts";
 import { AnatomyView } from "./components/AnatomyView.tsx";
 import { TubeView } from "./components/TubeView.tsx";
 import { Stroboscope } from "./components/Stroboscope.tsx";
@@ -20,7 +19,6 @@ import { SingRight, singInfo, singWords } from "./components/SingPanel.tsx";
 import type { Mode } from "./store.ts";
 import type { BodyName } from "../worklet/protocol.ts";
 import { BodyPad } from "./components/BodyPad.tsx";
-import { ResizeGrip } from "./components/ResizeGrip.tsx";
 import { presetOf, PRESETS } from "./body.ts";
 
 // three.js only loads when the 3D view is first shown
@@ -46,7 +44,7 @@ function TopBar() {
   useEffect(() => {
     const id = setInterval(() => {
       setLoad(engine.load);
-      if (inPlugin) setStopped(engine.error);
+      setStopped(engine.error);
     }, 500);
     return () => clearInterval(id);
   }, []);
@@ -60,22 +58,13 @@ function TopBar() {
         label="Mode"
         value={mode}
         onChange={setMode}
-        options={
-          inPlugin
-            ? [
-                { value: "sing", label: "Sing" },
-                { value: "play", label: "Play" },
-                { value: "speak", label: "Speak" },
-                { value: "beatbox", label: "Beatbox" },
-              ]
-            : [
-                { value: "play", label: "Play" },
-                { value: "speak", label: "Speak" },
-                { value: "sing", label: "Sing" },
-                { value: "bestiary", label: "Bestiary" },
-                { value: "beatbox", label: "Beatbox" },
-              ]
-        }
+        options={[
+          { value: "play", label: "Play" },
+          { value: "speak", label: "Speak" },
+          { value: "sing", label: "Sing" },
+          { value: "bestiary", label: "Bestiary" },
+          { value: "beatbox", label: "Beatbox" },
+        ]}
       />
       <div className="topbar-right">
         <label className="volume">
@@ -89,13 +78,7 @@ function TopBar() {
             Engine load {Math.round(load * 100)} %{light && " · 32 kHz"}
           </span>
         ) : null}
-        {!inPlugin && (
-          <a className="plugin-link" href={`${import.meta.env.BASE_URL}plugin/`} title="CHIMERA as a CLAP, VST3 and AU plugin for your DAW">
-            Plugin
-          </a>
-        )}
-        {!inPlugin && (
-          <a className="repo-link" href="https://github.com/jamesondh/chimera-vocal-synth" target="_blank" rel="noreferrer" aria-label="Source code on GitHub" title="Source code on GitHub">
+        <a className="repo-link" href="https://github.com/mahanrip91/CHIMERA-ANDROID" target="_blank" rel="noreferrer" aria-label="Source code on GitHub" title="Source code on GitHub">
             <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">
               <path
                 fill="currentColor"
@@ -103,7 +86,6 @@ function TopBar() {
               />
             </svg>
           </a>
-        )}
       </div>
     </header>
   );
@@ -218,13 +200,12 @@ export function App() {
 function Wall() {
   const mode = useStore((s) => s.mode);
   return (
-    <div className={`app text-colors mode-${mode}${inPlugin ? " in-plugin" : ""}`}>
+    <div className={`app text-colors mode-${mode}`}>
       <TopBar />
       <main className={`wall wall-${mode}`}>
         <LeftScreen />
         {mode === "play" ? <PlayRight /> : mode === "speak" ? <SpeakRight /> : mode === "sing" ? <SingRight /> : mode === "beatbox" ? <BeatboxRight /> : <BestiaryRight />}
       </main>
-      {inPlugin && <ResizeGrip />}
     </div>
   );
 }

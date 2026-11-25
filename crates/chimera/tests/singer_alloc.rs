@@ -1,4 +1,4 @@
-//! The live singer runs on a plugin's audio thread: once warm, notes, legato, melismas, glides and
+//! The live singer runs on the audio worklet's real-time thread: once warm, notes, legato, melismas, glides and
 //! releases must not allocate or free, for any body (a body between presets blends its targets).
 use chimera::anatomy::human::BodyMix;
 use chimera::control::singer::{Singer, syllables_from};

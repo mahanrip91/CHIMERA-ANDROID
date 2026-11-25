@@ -1,5 +1,6 @@
-const CACHE_PREFIX = "chimera-mobile-";
-const CACHE_NAME = CACHE_PREFIX + "v1";
+const CACHE_PREFIX = "chimera-android-";
+const CACHE_NAME = CACHE_PREFIX + "v2";
+const LEGACY_CACHE_PREFIXES = ["chimera-mobile-"];
 const APP_SHELL = new URL("./", self.registration.scope).href;
 
 self.addEventListener("install", (event) => {
@@ -12,7 +13,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)))
+      Promise.all(keys.filter((key) => (key.startsWith(CACHE_PREFIX) || LEGACY_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix))) && key !== CACHE_NAME).map((key) => caches.delete(key)))
     ).then(() => self.clients.claim())
   );
 });

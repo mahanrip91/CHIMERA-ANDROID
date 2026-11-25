@@ -2,7 +2,7 @@
  * A voice's recorded telemetry (`chimera render notes … --tele voice.tele`), replayed as the live
  * worklet's telemetry messages, so a 3D head moves exactly as the engine did for the sound.
  *
- * File layout (little-endian; crates/chimera-cli/src/render.rs `TeleRecorder`): "CHTL", u32
+ * File layout (little-endian; the offline telemetry recorder): "CHTL", u32
  * version, sampleRate, hop, frames, frameLen, nArtic, nPh, nOr, nScope, f32 bodyFemale,
  * bodyChild; then `frames` × `frameLen` f32. A frame: phLen, orLen, velumPort, f0, voicing, pLung,
  * outRms, noiseLevel, noiseNode, gate, clock, then artic, phAreas, orAreas, pressureRms, flow,

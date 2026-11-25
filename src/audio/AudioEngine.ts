@@ -4,9 +4,6 @@
  */
 import workletUrl from "../worklet/processor.ts?worker&url";
 import { chimeraModule } from "../wasm/chimera.ts";
-import { inPlugin, ipc, sendToPlugin, setParam, volumeToDb } from "./pluginBridge.ts";
-import { SampleAnalyser, type Analyser } from "./sampleAnalyser.ts";
-import { preferPlaybackSession } from "./session.ts";
 import type { ToWorklet, FromWorklet, TelemetryMessage, PlannedMessage, CreatureTelemetryMessage } from "../worklet/protocol.ts";
 import type { BodyMix } from "../wasm/types.ts";
 import type { HumanArtic } from "../wasm/types.ts";
@@ -17,6 +14,7 @@ type Listener = (t: TelemetryMessage) => void;
 const ANALYSER_SIZE = 4096;
 const ANALYSER_SMOOTHING = 0.6;
 const FAST_ANALYSER_SIZE = 2048;
+
 // 48 kHz whatever the device runs at (the browser resamples): the airway's cost grows with the
 // square of its rate, and a 192 kHz device took ~3x the CPU of 48 kHz and starved the worklet
 // (load 120-150%, no sound; issue #33). 32 kHz is the fallback for a device too slow for 48: its
@@ -38,9 +36,9 @@ const WARM_UP_MS = 2000;
 export class AudioEngine {
   ctx: AudioContext | null = null;
   private node: AudioWorkletNode | null = null;
-  analyser: Analyser | null = null;
+  analyser: AnalyserNode | null = null;
   /** unsmoothed, short-window analyser for the spectrogram */
-  analyserFast: Analyser | null = null;
+  analyserFast: AnalyserNode | null = null;
   /** long time-domain window for the waveform scope */
   analyserScope: AnalyserNode | null = null;
   private master: GainNode | null = null;
@@ -113,9 +111,8 @@ export class AudioEngine {
    * built (a failure leaves things as they were).
    */
   private async build(rate: number): Promise<void> {
-    preferPlaybackSession();
     const ctx = new AudioContext({ latencyHint: "interactive", sampleRate: rate });
-    // resume now, while the tap that called start() is still the current gesture: iOS Safari
+    // resume now, while the tap that called start() is still the current gesture: Android Chrome
     // refuses a resume() that comes after the awaits below (the context stays suspended, silent)
     const resumed = ctx.resume().catch(() => {});
     let node: AudioWorkletNode;
@@ -248,27 +245,11 @@ export class AudioEngine {
     return () => this.rebuiltListeners.delete(l);
   }
 
-  /** In the plugin there's no Web Audio: the same analysers, fed with what the audio thread sends. */
-  pluginAnalysers(): { feed: (samples: Float32Array) => void } {
-    const slow = new SampleAnalyser(ANALYSER_SIZE, ANALYSER_SMOOTHING);
-    const fast = new SampleAnalyser(FAST_ANALYSER_SIZE, 0);
-    this.analyser = slow;
-    this.analyserFast = fast;
-    return {
-      feed: (samples) => {
-        slow.push(samples);
-        fast.push(samples);
-      },
-    };
-  }
-
-  /** The plugin's host sets the rate and runs the engine: there's nothing to rebuild lighter. */
   private noteLoad(load: number): void {
-    if (inPlugin) this.load = load;
-    else this.watchLoad(load);
+    this.watchLoad(load);
   }
 
-  /** A message from the engine: the worklet's, or the plugin's as the page's poll decodes it. */
+  /** A message returned by the Web Audio worklet. */
   receive(m: FromWorklet): void {
     if (m.type === "telemetry") {
       this.latest = m;
@@ -364,60 +345,11 @@ export class AudioEngine {
   }
 
   private send(m: ToWorklet): void {
-    if (inPlugin) sendToPlugin(m);
-    else this.node?.port.postMessage(m);
-  }
-
-  // ---- what only the plugin has: there the keys, the lyrics and the mode belong to Rust
-
-  /** A key on the page went down or up. */
-  pluginNote(midi: number, on: boolean, velocity?: number): void {
-    ipc({ type: "note", midi, on, velocity });
-  }
-
-  pluginLyrics(text: string): void {
-    ipc({ type: "lyrics", text });
-  }
-
-  pluginCursor(index: number): void {
-    ipc({ type: "cursor", index });
-  }
-
-  pluginMode(mode: string): void {
-    ipc({ type: "mode", mode });
-  }
-
-  pluginHold(on: boolean): void {
-    ipc({ type: "hold", on });
-  }
-
-  /** The text to say changed: Rust plans its lines. */
-  pluginSpeech(edit: { text?: string; ipa?: boolean; rate?: number }): void {
-    ipc({ type: "speech", ...edit });
-  }
-
-  pluginSpeechCursor(index: number): void {
-    ipc({ type: "speechCursor", index });
-  }
-
-  /** Say the next line, as a note at the natural pitch would. */
-  pluginSpeak(): void {
-    ipc({ type: "speak" });
-  }
-
-  /** Say this once. */
-  pluginSayIpa(ipa: string): void {
-    ipc({ type: "sayIpa", ipa });
-  }
-
-  /** Whether the sequencer follows the host's transport. */
-  pluginFollowHost(on: boolean): void {
-    ipc({ type: "followHost", on });
+    this.node?.port.postMessage(m);
   }
 
   /** Route the voice through the close-mic chain (on) or straight to the output (off). */
   setMic(on: boolean): void {
-    if (inPlugin) return ipc({ type: "mic", on });
     if (on === this.micOn) return;
     this.micOn = on;
     if (!this.node || !this.master || !this.micIn) return;
@@ -444,8 +376,7 @@ export class AudioEngine {
   }
 
   setVolume(v: number): void {
-    if (inPlugin) setParam("gain", volumeToDb(v));
-    else if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.02);
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.02);
   }
 
   setBody(body: BodyMix): void {
@@ -456,16 +387,14 @@ export class AudioEngine {
     this.send({ type: "gate", level });
   }
 
-  /** Coalesced: many calls within a frame become one message. (In the plugin Rust merges them.) */
+  /** Coalesced: many calls within a frame become one message. */
   setArtic(values: Partial<HumanArtic>, tipFree?: boolean): void {
-    if (inPlugin) return this.send({ type: "artic", values, tipFree });
     this.pendingArtic = { ...(this.pendingArtic ?? {}), ...values };
     if (tipFree !== undefined) this.pendingTipFree = tipFree;
     this.scheduleFlush();
   }
 
   setSource(values: Partial<VoiceSource>): void {
-    if (inPlugin) return this.send({ type: "source", values });
     this.pendingSource = { ...(this.pendingSource ?? {}), ...values };
     this.scheduleFlush();
   }

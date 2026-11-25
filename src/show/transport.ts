@@ -7,10 +7,9 @@
  * output buffer): the context's output timestamp where the browser has one (it already allows for
  * output latency), else currentTime less the reported latency. A seek bumps `epoch` (so animation
  * history can be reset) and restarts a fresh source. The track ends when its end is heard, not when
- * the source finishes rendering. The context leaving "running" (an iOS interruption, the page
+ * the source finishes rendering. The context leaving "running" (a platform audio interruption, the page
  * going to the background), or failing to resume after Play, pauses the transport where it was.
  */
-import { preferPlaybackSession } from "../audio/session.ts";
 
 export type TransportState = { playing: boolean; time: number; duration: number; epoch: number };
 
@@ -64,11 +63,10 @@ export class Transport {
     for (const f of this.listeners) f();
   }
 
-  /** Call from the tap itself: iOS only lets a user gesture start audio. */
+  /** Call from the tap itself: mobile browsers only let a user gesture start audio. */
   play(): void {
     if (!this.buffer || this.playing) return;
     const gen = ++this.generation;
-    preferPlaybackSession();
     this.ctx.resume().catch(() => {
       // no audio (an interruption, a browser's refusal): back to paused, where it was
       if (gen === this.generation && this.playing) this.pause();
