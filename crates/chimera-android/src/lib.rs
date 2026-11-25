@@ -185,7 +185,7 @@ pub extern "system" fn Java_com_mahanrip_chimera_NativeAudio_nativeCommand(
                                 ..(i + 1) * chimera_wasm::GESTURE_RECORD],
                         );
                     }
-                    let lead = msg["lead"].as_f64().unwrap_or(0.006);
+                    let lead = msg["lead"].as_f64().unwrap_or(0.03);
                     let off = engine_schedule(
                         h,
                         n,
