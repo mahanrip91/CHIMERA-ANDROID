@@ -1,0 +1,52 @@
+name: Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0'
+      - uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27d
+          link-to-sdk: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android, wasm32-unknown-unknown
+      - uses: oven-sh/setup-bun@v2
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - run: cargo install cargo-ndk --locked
+      - run: bun install --frozen-lockfile
+      - name: Build Android WebView interface
+        env:
+          ANDROID_NATIVE_BUILD: 'true'
+        run: |
+          bun run build
+          mkdir -p android/app/src/main/assets/site
+          cp -R dist/. android/app/src/main/assets/site/
+      - name: Compile the Rust audio engine for Android ARM64
+        run: cargo ndk -t arm64-v8a -p 26 -o android/app/src/main/jniLibs build --release -p chimera-android
+      - name: Assemble APK
+        run: gradle -p android --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CHIMERA-Android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

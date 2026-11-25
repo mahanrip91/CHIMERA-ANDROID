@@ -11,6 +11,18 @@ import type { VoiceSource } from "../wasm/types.ts";
 
 type Listener = (t: TelemetryMessage) => void;
 
+type NativeAudioBridge = {
+  start(): boolean;
+  stop(): void;
+  running(): boolean;
+  sampleRate(): number;
+  level(): number;
+  command(json: string): string;
+  setVolume(value: number): void;
+};
+
+declare global { interface Window { ChimeraNative?: NativeAudioBridge } }
+
 const ANALYSER_SIZE = 4096;
 const ANALYSER_SMOOTHING = 0.6;
 const FAST_ANALYSER_SIZE = 2048;
@@ -36,6 +48,7 @@ const WARM_UP_MS = 2000;
 export class AudioEngine {
   ctx: AudioContext | null = null;
   private node: AudioWorkletNode | null = null;
+  private nativeMode = false;
   analyser: AnalyserNode | null = null;
   /** unsmoothed, short-window analyser for the spectrogram */
   analyserFast: AnalyserNode | null = null;
@@ -95,10 +108,20 @@ export class AudioEngine {
   }
 
   get running(): boolean {
+    if (this.nativeMode) return window.ChimeraNative?.running() ?? false;
     return !!this.ctx && this.ctx.state === "running";
   }
 
   async start(): Promise<void> {
+    const native = typeof window !== "undefined" ? window.ChimeraNative : undefined;
+    if (native) {
+      this.nativeMode = true;
+      if (!native.running() && !native.start()) throw new Error("Android native audio could not start");
+      this.sampleRate = native.sampleRate();
+      this.error = null;
+      for (const listener of this.readyListeners) listener();
+      return;
+    }
     if (this.ctx) {
       await this.ctx.resume();
       return;
@@ -315,6 +338,7 @@ export class AudioEngine {
 
   /** The output's RMS over the fast analyser's window (~40 ms); 0 before start(). */
   level(): number {
+    if (this.nativeMode) return window.ChimeraNative?.level() ?? 0;
     const a = this.analyserFast;
     if (!a) return 0;
     const buf = new Float32Array(a.fftSize);
@@ -345,11 +369,22 @@ export class AudioEngine {
   }
 
   private send(m: ToWorklet): void {
+    if (this.nativeMode) {
+      const response = window.ChimeraNative?.command(JSON.stringify(m));
+      if (response) {
+        try {
+          const parsed = JSON.parse(response) as { error?: string };
+          if (parsed.error) { this.error = parsed.error; console.error("native engine:", parsed.error); }
+        } catch { /* native bridge returned no diagnostic payload */ }
+      }
+      return;
+    }
     this.node?.port.postMessage(m);
   }
 
   /** Route the voice through the close-mic chain (on) or straight to the output (off). */
   setMic(on: boolean): void {
+    if (this.nativeMode) { this.micOn = on; return; }
     if (on === this.micOn) return;
     this.micOn = on;
     if (!this.node || !this.master || !this.micIn) return;
@@ -376,6 +411,7 @@ export class AudioEngine {
   }
 
   setVolume(v: number): void {
+    if (this.nativeMode) { window.ChimeraNative?.setVolume(v); return; }
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.02);
   }
 

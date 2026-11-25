@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   // GitHub Pages serves project sites below /<repository>/.
-  base: process.env.GITHUB_ACTIONS === "true" ? "/CHIMERA-ANDROID/" : "/",
+  base: process.env.ANDROID_NATIVE_BUILD === "true" ? "/assets/site/" : process.env.GITHUB_ACTIONS === "true" ? "/CHIMERA-ANDROID/" : "/",
   plugins: [react()],
   worker: { format: "es" },
   build: { target: "es2022", sourcemap: true },

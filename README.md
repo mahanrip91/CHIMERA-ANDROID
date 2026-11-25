@@ -1,46 +1,24 @@
 # CHIMERA for Android
 
-CHIMERA is an installable, Android-first voice synthesizer. It models a voice from airflow through the lungs, vocal folds and vocal tract; it does not assemble speech from prerecorded voice clips.
+CHIMERA is a physical-model voice instrument. It simulates a vocal tract and generates speech-like, sung and beatbox sounds from an articulatory model.
 
-**Open the app:** https://mahanrip91.github.io/CHIMERA-ANDROID/
+## Android app
 
-## Install on Android
+The primary Android build is a native APK. Kotlin owns the Android activity, WebView asset loading and `AudioTrack`; the Rust voice engine is compiled as an ARM64 Android shared library and renders on a dedicated audio-priority thread. The packaged React interface controls that native engine through a narrow bridge. Android playback does not use browser `AudioWorklet` or Web Audio for synthesis.
 
-1. Open the link above in the latest Google Chrome on Android.
-2. Open Chrome's menu and choose **Install app** (or **Add to Home screen**, depending on the Chrome version).
-3. Launch CHIMERA from its new home-screen icon. The app opens in its own window.
-4. Start audio with one of the in-app action buttons. Android requires audio playback to begin from a user gesture.
+The APK is built by the **Android APK** GitHub Actions workflow. Run it with the workflow-dispatch button or push to `main`; download the `CHIMERA-Android-debug` artifact from the completed run. Build architecture and limitations are documented in [ANDROID_BUILD.md](ANDROID_BUILD.md).
 
-The first visit needs an internet connection to download the engine and language data. Resources are cached as they load; after a successful first load, the app shell and previously loaded resources can be reused offline. Keep Chrome up to date for WebAssembly, AudioWorklet and Web Audio support.
+## Engine
 
-## What is included
+- `crates/chimera`: platform-independent physical voice model and synthesis engine.
+- `crates/chimera-wasm`: browser/planning API and stable render ABI shared with native hosts.
+- `crates/chimera-android`: JNI adapter for the Android audio host.
+- `android/app`: Kotlin activity, packaged WebView UI and low-latency `AudioTrack` output.
 
-- **Play:** live vocal-tract controls, body presets, keys and optional MIDI where the Android browser exposes Web MIDI.
-- **Speak:** text and IPA to speech gestures, with language selection and pronunciation feedback.
-- **Sing:** lyrics, syllable controls, tunes, tempo, key, pitch roll and recording/sharing where supported by Android.
-- **Beatbox:** articulatory drum pads and a step sequencer.
-- **Bestiary:** modeled animal vocalizations.
-- 2D/3D anatomy views, spectrum, airflow and sound-pressure visualizations.
-- Adaptive audio workload: the engine can reduce its internal sample rate on slower phones.
+## Web preview
 
-## Android-first scope
+The browser version remains available as a development/preview target. It uses the Web Audio worklet backend; the Android APK selects the native backend automatically.
 
-This repository contains only the Android browser application and its Rust/WebAssembly voice engine. It is designed for Android Chrome and compatible Chromium-based Android browsers. It is an installable PWA, not a standalone APK.
+## License
 
-## Development
-
-Requirements: Bun, Rust, and the `wasm32-unknown-unknown` Rust target.
-
-```sh
-bun install
-rustup target add wasm32-unknown-unknown
-bun run dev       # local development at http://127.0.0.1:5317
-bun run build     # WebAssembly + TypeScript checks + production site
-bun run test      # Rust engine and browser-side tests
-```
-
-The AudioWorklet requires a secure context. Use `localhost` for local development or HTTPS for hosted builds. The GitHub Actions workflow builds the WebAssembly engine and deploys `dist/` to GitHub Pages on every push to `main`.
-
-## Source and license
-
-The application is adapted from [CHIMERA vocal synth](https://github.com/jamesondh/chimera-vocal-synth), originally created by Jameson DH. The original MIT license is retained in [LICENSE](LICENSE), and bundled third-party assets retain their own notices and licenses.
+MIT. See [LICENSE](LICENSE).
